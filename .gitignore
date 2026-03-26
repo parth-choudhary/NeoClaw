@@ -1,0 +1,44 @@
+# macOS
+.DS_Store
+**/.DS_Store
+*.swp
+*~.nib
+
+# IDEs
+.idea/
+*.iml
+
+# Xcode / XcodeGen
+build/
+DerivedData/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xccheckout
+*.moved-aside
+*.hmap
+*.ipa
+*.xcuserstate
+
+# Generated Xcode Project (from project.yml)
+MobileClaw.xcodeproj/
+MobileClaw.xcworkspace/
+
+# CocoaPods (optional to ignore, usually ignored)
+Pods/
+
+# Android
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/.cxx/
+
+# QEMU / UTM Disk Images (large binaries)
+*.qcow2

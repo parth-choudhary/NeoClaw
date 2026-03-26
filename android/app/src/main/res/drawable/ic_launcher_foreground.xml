@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Claw icon - stylized "M" with claw marks -->
+    <path
+        android:fillColor="#00FF41"
+        android:pathData="M34,38 L42,70 L48,52 L54,70 L62,38 L58,38 L54,58 L48,42 L42,58 L38,38 Z" />
+    <path
+        android:fillColor="#00FF41"
+        android:strokeColor="#00FF41"
+        android:strokeWidth="1.5"
+        android:pathData="M44,34 L44,42 M50,32 L50,40 M56,34 L56,42" />
+</vector>
