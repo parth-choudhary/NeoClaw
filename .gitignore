@@ -42,3 +42,14 @@ android/.cxx/
 
 # QEMU / UTM Disk Images (large binaries)
 *.qcow2
+
+# iOS app (not tracking for now)
+/MobileClaw/
+/MobileClawWidgetExtension/
+/iOS/
+/Pods/
+/Podfile
+/Podfile.lock
+/project.yml
+/scripts/
+/BUILD_GUIDE.md
