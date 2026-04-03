@@ -327,41 +327,92 @@ fun SettingsScreen(
                 }
             }
 
-            // Agent Interaction Mode
+            // Agent Interaction Mode — both can be enabled simultaneously
             SettingsSection("Agent Interaction Mode") {
-                val prefs = orchestrator.getApplication<android.app.Application>()
-                    .getSharedPreferences("mobileclaw_prefs", android.content.Context.MODE_PRIVATE)
-                var currentInteractionMode by remember { mutableStateOf(prefs.getString("agent_interaction_mode", "accessibility") ?: "accessibility") }
+                val context = orchestrator.getApplication<android.app.Application>()
+                val prefs = context.getSharedPreferences("mobileclaw_prefs", android.content.Context.MODE_PRIVATE)
+                val a11yEnabled by com.parth.mobileclaw.accessibility.MobileClawAccessibilityService.isEnabled.collectAsState()
+                
+                var accessibilityModeOn by remember { mutableStateOf(prefs.getBoolean("accessibility_mode_enabled", true)) }
+                var browserModeOn by remember { mutableStateOf(prefs.getBoolean("browser_mode_enabled", false)) }
 
-                val modes = listOf("accessibility" to "Accessibility (Foreground apps)", "browser" to "Browser (Background web)")
-                modes.forEach { (modeId, displayName) ->
-                    val isSelected = currentInteractionMode == modeId
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                currentInteractionMode = modeId
-                                prefs.edit().putString("agent_interaction_mode", modeId).apply()
-                                // Start/stop browser service and invalidate cached prompt
-                                if (modeId == "browser") {
-                                    com.parth.mobileclaw.browser.AgentBrowserService.start(orchestrator.getApplication())
+                Text(
+                    "Enable the modes the agent can use. Both can be active at once.",
+                    color = cs.onSurfaceVariant, fontSize = 12.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+
+                // Accessibility checkbox
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            if (!accessibilityModeOn) {
+                                // Turning on: check if permission granted, if not open settings
+                                if (!a11yEnabled) {
+                                    try {
+                                        val intent = android.content.Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                                        intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) {}
                                 }
-                                orchestrator.goClawBridge.invalidateCache()
+                                accessibilityModeOn = true
+                            } else {
+                                // At least one mode must remain on
+                                if (browserModeOn) accessibilityModeOn = false
                             }
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = isSelected,
-                            onClick = null,
-                            colors = RadioButtonDefaults.colors(selectedColor = cs.secondary)
-                        )
-                        Spacer(Modifier.width(16.dp))
-                        Text(displayName, color = cs.onSurface, fontSize = 16.sp)
+                            prefs.edit().putBoolean("accessibility_mode_enabled", accessibilityModeOn).apply()
+                            orchestrator.goClawBridge.invalidateCache()
+                        }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = accessibilityModeOn,
+                        onCheckedChange = null,
+                        colors = CheckboxDefaults.colors(checkedColor = cs.secondary)
+                    )
+                    Spacer(Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Accessibility (Foreground apps)", color = cs.onSurface, fontSize = 16.sp)
+                        if (accessibilityModeOn && !a11yEnabled) {
+                            Text(
+                                "⚠️ Permission required — tap to open Settings",
+                                color = cs.error, fontSize = 12.sp
+                            )
+                        }
                     }
                 }
-                
-                if (currentInteractionMode == "browser") {
+
+                // Browser checkbox
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            if (!browserModeOn) {
+                                browserModeOn = true
+                                com.parth.mobileclaw.browser.AgentBrowserService.start(context)
+                            } else {
+                                // At least one mode must remain on
+                                if (accessibilityModeOn) browserModeOn = false
+                            }
+                            prefs.edit().putBoolean("browser_mode_enabled", browserModeOn).apply()
+                            orchestrator.goClawBridge.invalidateCache()
+                        }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = browserModeOn,
+                        onCheckedChange = null,
+                        colors = CheckboxDefaults.colors(checkedColor = cs.secondary)
+                    )
+                    Spacer(Modifier.width(16.dp))
+                    Text("Browser (Background web)", color = cs.onSurface, fontSize = 16.sp)
+                }
+
+                // Browser Login Sessions — visible when browser mode is on
+                if (browserModeOn) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -375,17 +426,17 @@ fun SettingsScreen(
                         Icon(Icons.Default.ChevronRight, null, tint = cs.secondary, modifier = Modifier.size(20.dp))
                     }
                     Text(
-                        "ℹ️ The agent will browse the web in the background. Log into websites first so it can use your active sessions.",
-                        color = cs.onSurfaceVariant, fontSize = 12.sp,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                    )
-                } else {
-                    Text(
-                        "ℹ️ The agent will read your screen and physically tap on apps. This interrupts your phone use.",
+                        "ℹ️ Log into websites so the agent can browse them in the background on your behalf.",
                         color = cs.onSurfaceVariant, fontSize = 12.sp,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                     )
                 }
+
+                Text(
+                    "Priority: User preference → Browser (if site logged in) → Accessibility",
+                    color = cs.onSurfaceVariant, fontSize = 11.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
             }
 
             // Voice Input Settings

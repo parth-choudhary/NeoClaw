@@ -60,7 +60,7 @@ install_package(package: "ffmpeg")
 ---
 
 ## Headless Browser Tools
-These tools allow you to browse the web silently in the background. **They are only available when the user has set the interaction mode to "Browser Mode".** Use these to scrape websites, access web apps, or summarize content without needing to physically open a browser app on the user's screen.
+These tools allow you to browse the web silently in the background. Use these to scrape websites, access web apps, or summarize content without needing to physically open a browser app on the user's screen. Both browser tools and accessibility tools can be used in the same conversation — pick the best approach for the task.
 
 ### `browser_open`
 Open a URL in a background session.

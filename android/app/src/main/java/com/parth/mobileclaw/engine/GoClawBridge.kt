@@ -53,16 +53,17 @@ class GoClawBridge(
     fun buildSystemPrompt(): String {
         var prompt = loadBasePrompt()
 
-        // Check interaction mode
+        // Check which modes are enabled
         val prefs = context.getSharedPreferences("mobileclaw_prefs", android.content.Context.MODE_PRIVATE)
-        val isBrowserMode = prefs.getString("agent_interaction_mode", "accessibility") == "browser"
+        val accessibilityEnabled = prefs.getBoolean("accessibility_mode_enabled", true)
+        val browserEnabled = prefs.getBoolean("browser_mode_enabled", false)
 
-        // Inject active skill instructions (filter by mode)
+        // Inject active skill instructions (include all active skills regardless of mode)
         val activeSkills = loadedSkills.value.filter { it.isActive && it.isEnabled }
             .filter { skill ->
                 when {
-                    isBrowserMode && skill.name == "android-accessibility" -> false
-                    !isBrowserMode && skill.name == "background-browser" -> false
+                    !accessibilityEnabled && skill.name == "android-accessibility" -> false
+                    !browserEnabled && skill.name == "background-browser" -> false
                     else -> true
                 }
             }
@@ -73,15 +74,37 @@ class GoClawBridge(
             }
         }
 
-        // If browser mode, inject browser-specific context
-        if (isBrowserMode) {
+        // Dual-mode guidance
+        if (accessibilityEnabled && browserEnabled) {
+            prompt += "\n\n---\n\n## Agent Mode: Dual Mode (Accessibility + Browser)\n\n"
+            prompt += "You have BOTH accessibility tools (control native apps) and browser tools (browse web silently in background).\n\n"
+            prompt += "### Method Selection Priority\n"
+            prompt += "1. **User preference** — If the user has previously told you how they prefer a task done (e.g. 'use the app' or 'do it in the browser'), use `save_memory` to remember that preference and always follow it.\n"
+            prompt += "2. **Browser mode** — If a website for the task is logged in (user added it via Login Sessions), prefer browser tools. The browser works silently without interrupting the user.\n"
+            prompt += "3. **Accessibility mode** — Use as last resort for app-only features. Requires the user's screen and interrupts their phone use.\n\n"
+            prompt += "### When to use Browser tools\n"
+            prompt += "- User says 'in background', 'without interrupting', or 'silently'\n"
+            prompt += "- Task is web-based: search, scraping, reading articles, checking websites\n"
+            prompt += "- The website is logged in via Manage Login Sessions\n"
+            prompt += "- Accessibility service is not available (permission not granted)\n\n"
+            prompt += "### When to use Accessibility tools\n"
+            prompt += "- Task requires a native app (WhatsApp, camera, phone settings, etc.) with no web equivalent\n"
+            prompt += "- User explicitly says 'open the app' or 'use the app'\n"
+            prompt += "- Task needs app-only features not available on the website\n\n"
+            prompt += "### Fallback Logic\n"
+            prompt += "- If accessibility fails (service not enabled), try the browser equivalent.\n"
+            prompt += "- If browser fails (site not logged in), suggest the user log in via Settings → Manage Login Sessions.\n\n"
+            prompt += "### Remember User Preferences\n"
+            prompt += "When the user tells you to use a specific method for a task, save it:\n"
+            prompt += "`save_memory(key: \"pref_twitter_method\", value: \"browser\")` — so next time you do Twitter tasks via browser.\n\n"
+        } else if (browserEnabled) {
             prompt += "\n\n---\n\n## Agent Mode: Background Browser\n\n"
-            prompt += "You are operating in **Background Browser Mode**. You browse the web silently using a headless WebView.\n"
-            prompt += "- Do NOT use accessibility tools (read_screen, tap_element, etc.) — they are disabled.\n"
-            prompt += "- Use `browser_open`, `browser_read`, `browser_click`, `browser_type`, `browser_scroll`, `browser_get_url`, `browser_execute_js` instead.\n"
+            prompt += "You are operating in **Browser Mode**. You browse the web silently using a headless WebView.\n"
+            prompt += "- Use `browser_open`, `browser_read`, `browser_click`, `browser_type`, `browser_scroll`, `browser_get_url`, `browser_execute_js` to interact.\n"
             prompt += "- The user has logged into websites via the Browser Login screen. Their cookies/sessions are shared with your browser.\n"
             prompt += "- You can browse any website without disrupting the user's current app.\n\n"
         }
+        // If only accessibility is enabled, the android-accessibility skill already provides all the guidance needed
 
         // Inject persistent memory
         prompt += userMemory.toPromptSection()

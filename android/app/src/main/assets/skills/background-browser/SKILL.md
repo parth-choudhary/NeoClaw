@@ -7,8 +7,8 @@ description: Browse the web silently in the background using headless WebView
 
 You can browse the web in the **background** without disrupting the user's current phone activity. Pages load in a headless WebView that the user never sees.
 
-## ⚠️ Setup Required
-The user must enable **Browser Mode** in Settings → Agent Interaction Mode → Browser (Background web).
+## ⚠️ Setup
+The user should enable **Browser mode** (checkbox) in Settings → Agent Interaction Mode.
 The user should log into websites via **Manage Login Sessions** so you inherit their cookies.
 
 ## Available Tools
