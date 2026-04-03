@@ -223,7 +223,61 @@ class AgentOrchestrator(application: Application) : AndroidViewModel(application
             toolDef("cancel_task",
                 "Cancel a scheduled task by ID.",
                 mapOf("task_id" to propStr("The task ID to cancel")),
-                listOf("task_id"))
+                listOf("task_id")),
+
+            // Hardware control tools
+            toolDef("toggle_flashlight",
+                "Turn the device flashlight (torch) on or off.",
+                mapOf("turn_on" to mapOf("type" to "boolean", "description" to "true to turn on, false to turn off")),
+                listOf("turn_on")),
+            toolDef("create_contact",
+                "Create a new contact in the device's address book.",
+                mapOf("name" to propStr("Full name of the contact"),
+                      "phone" to propStr("Phone number (optional)"),
+                      "email" to propStr("Email address (optional)")),
+                listOf("name")),
+            toolDef("create_calendar_event",
+                "Create a calendar event on the device.",
+                mapOf("title" to propStr("Event title"),
+                      "description" to propStr("Event description (optional)"),
+                      "location" to propStr("Event location (optional)"),
+                      "start_time" to propStr("Start time as ISO 8601 string, e.g. '2025-01-15T14:30:00'. If omitted, defaults to 1 hour from now."),
+                      "end_time" to propStr("End time as ISO 8601 string. If omitted, defaults to 1 hour after start."),
+                      "all_day" to mapOf("type" to "boolean", "description" to "Whether this is an all-day event")),
+                listOf("title")),
+            toolDef("set_alarm",
+                "Set an alarm on the device clock app.",
+                mapOf("hour" to mapOf("type" to "integer", "description" to "Hour in 24-hour format (0-23)"),
+                      "minute" to mapOf("type" to "integer", "description" to "Minute (0-59)"),
+                      "label" to propStr("Optional label for the alarm")),
+                listOf("hour", "minute")),
+            toolDef("set_timer",
+                "Set a countdown timer on the device.",
+                mapOf("seconds" to mapOf("type" to "integer", "description" to "Timer duration in seconds"),
+                      "label" to propStr("Optional label for the timer")),
+                listOf("seconds")),
+            toolDef("send_sms",
+                "Send an SMS text message to a phone number.",
+                mapOf("phone_number" to propStr("Recipient phone number"),
+                      "message" to propStr("Text message to send")),
+                listOf("phone_number", "message")),
+            toolDef("make_call",
+                "Make a phone call to a number.",
+                mapOf("phone_number" to propStr("Phone number to call")),
+                listOf("phone_number")),
+            toolDef("take_photo",
+                "Open the camera to take a photo. The photo will be saved to the app's Photos directory.",
+                emptyMap(), emptyList()),
+            toolDef("open_wifi_settings",
+                "Open the WiFi settings panel so the user can toggle WiFi.",
+                emptyMap(), emptyList()),
+            toolDef("open_bluetooth_settings",
+                "Open the Bluetooth settings so the user can manage connections.",
+                emptyMap(), emptyList()),
+            toolDef("open_map",
+                "Open a location or address in the maps app.",
+                mapOf("query" to propStr("Location name, address, or search query")),
+                listOf("query"))
             )
 
             // Accessibility tools — control other apps on screen
@@ -553,6 +607,58 @@ class AgentOrchestrator(application: Application) : AndroidViewModel(application
             "open_url" -> deviceBridge.openUrl(args["url"] as? String ?: "")
             "launch_app" -> deviceBridge.launchApp(args["package_name"] as? String ?: "")
             "share_file" -> deviceBridge.shareFile(args["path"] as? String ?: "")
+
+            // Hardware control tools
+            "toggle_flashlight" -> {
+                val turnOn = args["turn_on"] as? Boolean ?: true
+                deviceBridge.toggleFlashlight(turnOn)
+            }
+            "create_contact" -> {
+                val name = args["name"] as? String ?: ""
+                val phone = args["phone"] as? String
+                val email = args["email"] as? String
+                deviceBridge.createContact(name, phone, email)
+            }
+            "create_calendar_event" -> {
+                val title = args["title"] as? String ?: ""
+                val description = args["description"] as? String
+                val location = args["location"] as? String
+                val allDay = args["all_day"] as? Boolean ?: false
+
+                // Parse ISO 8601 time strings to millis
+                val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault())
+                val startMs = (args["start_time"] as? String)?.let { try { sdf.parse(it)?.time } catch (_: Exception) { null } }
+                val endMs = (args["end_time"] as? String)?.let { try { sdf.parse(it)?.time } catch (_: Exception) { null } }
+
+                deviceBridge.createCalendarEvent(title, description, location, startMs, endMs, allDay)
+            }
+            "set_alarm" -> {
+                val hour = (args["hour"] as? Number)?.toInt() ?: 0
+                val minute = (args["minute"] as? Number)?.toInt() ?: 0
+                val label = args["label"] as? String
+                deviceBridge.setAlarm(hour, minute, label)
+            }
+            "set_timer" -> {
+                val seconds = (args["seconds"] as? Number)?.toInt() ?: 60
+                val label = args["label"] as? String
+                deviceBridge.setTimer(seconds, label)
+            }
+            "send_sms" -> {
+                val phone = args["phone_number"] as? String ?: ""
+                val message = args["message"] as? String ?: ""
+                deviceBridge.sendSms(phone, message)
+            }
+            "make_call" -> {
+                val phone = args["phone_number"] as? String ?: ""
+                deviceBridge.makeCall(phone)
+            }
+            "take_photo" -> deviceBridge.takePhoto()
+            "open_wifi_settings" -> deviceBridge.openWifiSettings()
+            "open_bluetooth_settings" -> deviceBridge.openBluetoothSettings()
+            "open_map" -> {
+                val query = args["query"] as? String ?: ""
+                deviceBridge.openMap(query)
+            }
 
             // Notifications
             "send_notification" -> {
