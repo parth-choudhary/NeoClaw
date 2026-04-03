@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" width="120" alt="MobileClaw Logo" />
+  <img src="android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" width="120" alt="NeoClaw Logo" />
 </p>
 
-<h1 align="center">MobileClaw</h1>
+<h1 align="center">NeoClaw</h1>
 
 <p align="center">
   <strong>The AI that actually does things.</strong><br/>
@@ -10,24 +10,24 @@
 </p>
 
 <p align="center">
-  <a href="https://play.google.com/store/apps/details?id=com.parth.mobileclaw">
+  <a href="https://play.google.com/store/apps/details?id=com.parth.neoclaw">
     <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" height="80" alt="Get it on Google Play" />
   </a>
 </p>
 
 <p align="center">
-  <a href="https://mobileclaw.parthchoudhary.com">Website</a> •
+  <a href="https://neoclaw.parthchoudhary.com">Website</a> •
   <a href="#features">Features</a> •
   <a href="#screenshots">Screenshots</a> •
   <a href="#building">Building</a> •
-  <a href="https://github.com/niceparth/MobileClaw/issues">Issues</a>
+  <a href="https://github.com/niceparth/NeoClaw/issues">Issues</a>
 </p>
 
 ---
 
-## What is MobileClaw?
+## What is NeoClaw?
 
-MobileClaw is a fully on-device AI agent for Android. Unlike chatbots that only generate text, MobileClaw **actually does things** — it controls foreground apps via Accessibility, browses the web in the background, executes Linux commands via an embedded Alpine Linux environment (proot), toggles your flashlight, sends SMS, creates calendar events, and much more.
+NeoClaw is a fully on-device AI agent for Android. Unlike chatbots that only generate text, NeoClaw **actually does things** — it controls foreground apps via Accessibility, browses the web in the background, executes Linux commands via an embedded Alpine Linux environment (proot), toggles your flashlight, sends SMS, creates calendar events, and much more.
 
 Bring your own API key. Pick any LLM provider. Your data stays on your device.
 
@@ -50,7 +50,7 @@ Bring your own API key. Pick any LLM provider. Your data stays on your device.
 ## Features
 
 ### 🤖 Multi-Provider LLM Support
-Pick your brain. MobileClaw supports **10+ LLM providers** out of the box:
+Pick your brain. NeoClaw supports **10+ LLM providers** out of the box:
 
 | Provider | Models |
 |----------|--------|
@@ -147,8 +147,8 @@ Attach context to your messages:
 
 ```bash
 # Clone the repository
-git clone https://github.com/niceparth/MobileClaw.git
-cd MobileClaw
+git clone https://github.com/niceparth/NeoClaw.git
+cd NeoClaw
 
 # Open in Android Studio
 open -a "Android Studio" android/
@@ -181,7 +181,7 @@ Or transfer the APK to your phone and install directly.
 ## Architecture
 
 ```
-com.parth.mobileclaw/
+com.parth.neoclaw/
 ├── engine/
 │   ├── AgentOrchestrator.kt    # Main agentic loop — LLM ↔ tool execution
 │   ├── LinuxExecutor.kt        # proot + Alpine Linux shell
@@ -191,7 +191,7 @@ com.parth.mobileclaw/
 ├── bridge/
 │   └── DeviceBridge.kt          # Native Android hardware APIs
 ├── accessibility/
-│   └── MobileClawAccessibilityService.kt  # Screen reading + UI control
+│   └── NeoClawAccessibilityService.kt  # Screen reading + UI control
 ├── browser/
 │   └── AgentBrowserService.kt   # Background WebView automation
 ├── ui/
@@ -241,5 +241,5 @@ This project is open source. See [LICENSE](LICENSE) for details.
 
 <p align="center">
   Built with 🦀 by <a href="https://parthchoudhary.com">Parth Choudhary</a><br/>
-  <a href="https://mobileclaw.parthchoudhary.com">mobileclaw.parthchoudhary.com</a>
+  <a href="https://neoclaw.parthchoudhary.com">neoclaw.parthchoudhary.com</a>
 </p>
