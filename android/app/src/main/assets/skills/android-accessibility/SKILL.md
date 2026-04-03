@@ -10,7 +10,7 @@ You can read, interact with, and control **any app** on the user's device.
 
 ## ⚠️ Setup Required
 The user must enable the accessibility service:
-**Settings → Accessibility → MobileClaw → Enable**
+**Settings → Accessibility → NeoClaw → Enable**
 
 ## Available Tools
 

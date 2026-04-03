@@ -5,7 +5,7 @@ _Learn about the person you're helping. Update this as you go._
 - **Name:** {{USER_NAME}}
 - **What to call them:** {{USER_NICKNAME}}
 - **Timezone:** {{USER_TIMEZONE}}
-- **Device:** Android / iOS (MobileClaw)
+- **Device:** Android / iOS (NeoClaw)
 - **Notes:**
 
 ## Context

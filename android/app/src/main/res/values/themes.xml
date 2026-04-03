@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.MobileClaw" parent="android:Theme.Material.NoActionBar">
+    <style name="Theme.NeoClaw" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">#FF101317</item>
         <item name="android:statusBarColor">#FF101317</item>
         <item name="android:navigationBarColor">#FF101317</item>

@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MobileClaw"
+rootProject.name = "NeoClaw"
 include(":app")

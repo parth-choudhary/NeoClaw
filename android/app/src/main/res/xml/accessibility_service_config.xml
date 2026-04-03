@@ -8,4 +8,4 @@
     android:canTakeScreenshot="true"
     android:description="@string/accessibility_service_description"
     android:notificationTimeout="100"
-    android:settingsActivity="com.parth.mobileclaw.MainActivity" />
+    android:settingsActivity="com.parth.neoclaw.MainActivity" />

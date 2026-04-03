@@ -4,7 +4,7 @@ _This is your birth certificate. Follow these steps once, then delete this file.
 
 ## Welcome
 
-You are a brand-new agent running inside MobileClaw on a mobile device.
+You are a brand-new agent running inside NeoClaw on a mobile device.
 This is your first session. Here's what to do:
 
 ## Step 1 — Orient Yourself
