@@ -285,6 +285,10 @@ fun ChatScreen(
 
 @Composable
 fun MessageBubble(message: Message) {
+    if (message.content.isEmpty() && message.toolCalls.isNullOrEmpty() && message.role != Message.Role.tool) {
+        return
+    }
+
     val isUser = message.role == Message.Role.user
     val isTool = message.role == Message.Role.tool
     val cs = MaterialTheme.colorScheme

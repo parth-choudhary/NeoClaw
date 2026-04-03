@@ -106,7 +106,12 @@ class AgentOrchestrator(application: Application) : AndroidViewModel(application
             // Wire up task scheduler
             taskScheduler.executePrompt = { prompt -> executeScheduledPrompt(prompt) }
 
+            // Start browser service if browser mode is enabled
             val prefs = context.getSharedPreferences("mobileclaw_prefs", Context.MODE_PRIVATE)
+            if (prefs.getString("agent_interaction_mode", "accessibility") == "browser") {
+                com.parth.mobileclaw.browser.AgentBrowserService.start(context)
+            }
+
             if (_messages.value.isEmpty() && prefs.getBoolean("onboarding_complete", false)) {
                 triggerBootstrapSequence()
             }
@@ -129,9 +134,14 @@ class AgentOrchestrator(application: Application) : AndroidViewModel(application
     // MARK: - Tool Definitions
 
     val toolDefinitions: List<Map<String, Any>>
-        get() = listOf(
-            toolDef("run_command",
-                "Execute a shell command in the Linux environment. Supports all Alpine Linux commands. Install tools with `apk add <package>`.",
+        get() {
+            val prefs = context.getSharedPreferences("mobileclaw_prefs", Context.MODE_PRIVATE)
+            val interactionMode = prefs.getString("agent_interaction_mode", "accessibility") ?: "accessibility"
+            val isBrowserMode = interactionMode == "browser"
+
+            val baseTools = listOf(
+                toolDef("run_command",
+                    "Execute a shell command in the Linux environment. Supports all Alpine Linux commands. Install tools with `apk add <package>`.",
                 mapOf("command" to propStr("The shell command to execute")),
                 listOf("command")),
             toolDef("read_file",
@@ -213,9 +223,11 @@ class AgentOrchestrator(application: Application) : AndroidViewModel(application
             toolDef("cancel_task",
                 "Cancel a scheduled task by ID.",
                 mapOf("task_id" to propStr("The task ID to cancel")),
-                listOf("task_id")),
+                listOf("task_id"))
+            )
 
             // Accessibility tools — control other apps
+            val accessibilityTools = listOf(
             toolDef("read_screen",
                 "Read the currently visible screen of any app. Returns all visible UI elements with their text, types, and properties. Use this to understand what's on screen before interacting.",
                 emptyMap(), emptyList()),
@@ -250,8 +262,56 @@ class AgentOrchestrator(application: Application) : AndroidViewModel(application
                 listOf("button")),
             toolDef("get_current_app",
                 "Get the package name of the currently foreground app.",
-                emptyMap(), emptyList()),
-        )
+                emptyMap(), emptyList())
+            )
+            
+            val browserTools = listOf(
+                toolDef("browser_open",
+                    "Open a URL in a background browser tab. Use this to start scraping or interacting with a website.",
+                    mapOf("url" to propStr("URL to navigate to"),
+                          "session_id" to propStr("Optional: Session ID to reuse. If omitted, uses current.")),
+                    listOf("url")),
+                toolDef("browser_read",
+                    "Read the current page's main content and interactive elements. Returns a simplified markdown representation.",
+                    mapOf("session_id" to propStr("Optional: Session ID to read from")),
+                    emptyList()),
+                toolDef("browser_click",
+                    "Click an element on the webpage by its CSS selector or visible text.",
+                    mapOf("selector_or_text" to propStr("CSS selector or visible text of the button/link to click"),
+                          "session_id" to propStr("Optional: Session ID to click in")),
+                    listOf("selector_or_text")),
+                toolDef("browser_type",
+                    "Type text into a form field on the webpage.",
+                    mapOf("selector_or_text" to propStr("CSS selector or placeholder text of the input field"),
+                          "text" to propStr("Text to type"),
+                          "session_id" to propStr("Optional: Session ID")),
+                    listOf("selector_or_text", "text")),
+                toolDef("browser_scroll",
+                    "Scroll the webpage up or down.",
+                    mapOf("direction" to propStr("'up' or 'down'"),
+                          "session_id" to propStr("Optional: Session ID")),
+                    listOf("direction")),
+                toolDef("browser_get_url",
+                    "Get the current URL and page title of the browser session.",
+                    mapOf("session_id" to propStr("Optional: Session ID")),
+                    emptyList()),
+                toolDef("browser_execute_js",
+                    "Execute arbitrary JavaScript on the current page to extract specific data or perform complex interactions.",
+                    mapOf("script" to propStr("JavaScript code to execute"),
+                          "session_id" to propStr("Optional: Session ID")),
+                    listOf("script")),
+                toolDef("browser_press_enter",
+                    "Press the Enter key on the currently focused element. Use after browser_type to submit messages in chat apps, search queries, or forms.",
+                    mapOf("session_id" to propStr("Optional: Session ID")),
+                    emptyList())
+            )
+            
+            return if (isBrowserMode) {
+                baseTools + browserTools
+            } else {
+                baseTools + accessibilityTools
+            }
+        }
 
     // MARK: - Send Message
 
@@ -449,6 +509,11 @@ class AgentOrchestrator(application: Application) : AndroidViewModel(application
 
     // MARK: - Tool Execution
 
+    private fun isBrowserMode(): Boolean {
+        val prefs = context.getSharedPreferences("mobileclaw_prefs", Context.MODE_PRIVATE)
+        return prefs.getString("agent_interaction_mode", "accessibility") == "browser"
+    }
+
     private suspend fun executeTool(toolCall: ToolCall): ToolResult {
         val args = toolCall.arguments
 
@@ -534,7 +599,9 @@ class AgentOrchestrator(application: Application) : AndroidViewModel(application
             }
 
             // Accessibility (control other apps)
+            // Block accessibility tools when browser mode is active
             "read_screen" -> {
+                if (isBrowserMode()) return ToolResult(id = toolCall.id, output = "Accessibility tools are disabled. You are in Browser Mode. Use browser_open, browser_read, browser_click, browser_type, browser_scroll, browser_get_url, browser_execute_js instead.", exitCode = 1, isError = true)
                 val svc = MobileClawAccessibilityService.instance
                 if (svc != null) {
                     ToolResult(id = toolCall.id, output = svc.dumpScreen())
@@ -543,6 +610,7 @@ class AgentOrchestrator(application: Application) : AndroidViewModel(application
                 }
             }
             "tap_element" -> {
+                if (isBrowserMode()) return ToolResult(id = toolCall.id, output = "Accessibility tools are disabled. You are in Browser Mode. Use browser_click instead.", exitCode = 1, isError = true)
                 val svc = MobileClawAccessibilityService.instance
                     ?: return ToolResult(id = toolCall.id, output = "Accessibility service not enabled.", exitCode = 1, isError = true)
                 val text = args["text"] as? String ?: ""
@@ -551,6 +619,7 @@ class AgentOrchestrator(application: Application) : AndroidViewModel(application
                     exitCode = if (success) 0 else 1, isError = !success)
             }
             "tap_coordinates" -> {
+                if (isBrowserMode()) return ToolResult(id = toolCall.id, output = "Accessibility tools are disabled. You are in Browser Mode. Use browser_click instead.", exitCode = 1, isError = true)
                 val svc = MobileClawAccessibilityService.instance
                     ?: return ToolResult(id = toolCall.id, output = "Accessibility service not enabled.", exitCode = 1, isError = true)
                 val x = (args["x"] as? Number)?.toFloat() ?: 0f
@@ -559,6 +628,7 @@ class AgentOrchestrator(application: Application) : AndroidViewModel(application
                 ToolResult(id = toolCall.id, output = "Tapped at ($x, $y)")
             }
             "type_text" -> {
+                if (isBrowserMode()) return ToolResult(id = toolCall.id, output = "Accessibility tools are disabled. You are in Browser Mode. Use browser_type instead.", exitCode = 1, isError = true)
                 val svc = MobileClawAccessibilityService.instance
                     ?: return ToolResult(id = toolCall.id, output = "Accessibility service not enabled.", exitCode = 1, isError = true)
                 val text = args["text"] as? String ?: ""
@@ -568,6 +638,7 @@ class AgentOrchestrator(application: Application) : AndroidViewModel(application
                     exitCode = if (success) 0 else 1, isError = !success)
             }
             "scroll_screen" -> {
+                if (isBrowserMode()) return ToolResult(id = toolCall.id, output = "Accessibility tools are disabled. You are in Browser Mode. Use browser_scroll instead.", exitCode = 1, isError = true)
                 val svc = MobileClawAccessibilityService.instance
                     ?: return ToolResult(id = toolCall.id, output = "Accessibility service not enabled.", exitCode = 1, isError = true)
                 val dir = args["direction"] as? String ?: "down"
@@ -576,6 +647,7 @@ class AgentOrchestrator(application: Application) : AndroidViewModel(application
                     exitCode = if (success) 0 else 1, isError = !success)
             }
             "swipe" -> {
+                if (isBrowserMode()) return ToolResult(id = toolCall.id, output = "Accessibility tools are disabled. You are in Browser Mode.", exitCode = 1, isError = true)
                 val svc = MobileClawAccessibilityService.instance
                     ?: return ToolResult(id = toolCall.id, output = "Accessibility service not enabled.", exitCode = 1, isError = true)
                 val sx = (args["start_x"] as? Number)?.toFloat() ?: 0f
@@ -586,6 +658,7 @@ class AgentOrchestrator(application: Application) : AndroidViewModel(application
                 ToolResult(id = toolCall.id, output = "Swiped from ($sx,$sy) to ($ex,$ey)")
             }
             "press_button" -> {
+                if (isBrowserMode()) return ToolResult(id = toolCall.id, output = "Accessibility tools are disabled. You are in Browser Mode.", exitCode = 1, isError = true)
                 val svc = MobileClawAccessibilityService.instance
                     ?: return ToolResult(id = toolCall.id, output = "Accessibility service not enabled.", exitCode = 1, isError = true)
                 val button = args["button"] as? String ?: "back"
@@ -601,12 +674,84 @@ class AgentOrchestrator(application: Application) : AndroidViewModel(application
                     exitCode = if (success) 0 else 1, isError = !success)
             }
             "get_current_app" -> {
+                if (isBrowserMode()) return ToolResult(id = toolCall.id, output = "Accessibility tools are disabled. You are in Browser Mode.", exitCode = 1, isError = true)
                 val svc = MobileClawAccessibilityService.instance
                 if (svc != null) {
                     ToolResult(id = toolCall.id, output = svc.getCurrentApp())
                 } else {
                     ToolResult(id = toolCall.id, output = "Accessibility service not enabled.", exitCode = 1, isError = true)
                 }
+            }
+
+            // Headless Browser Tools
+            "browser_open" -> {
+                val svc = com.parth.mobileclaw.browser.AgentBrowserService.instance
+                    ?: return ToolResult(id = toolCall.id, output = "Browser service not running.", exitCode = 1, isError = true)
+                val url = args["url"] as? String ?: ""
+                val sessionId = args["session_id"] as? String
+                val session = svc.getSession(sessionId)
+                val success = session.loadUrl(url)
+                ToolResult(id = toolCall.id, output = if (success) "Opened $url in session ${session.sessionId}" else "Failed to open $url", exitCode = if (success) 0 else 1, isError = !success)
+            }
+            "browser_read" -> {
+                val svc = com.parth.mobileclaw.browser.AgentBrowserService.instance
+                    ?: return ToolResult(id = toolCall.id, output = "Browser service not running.", exitCode = 1, isError = true)
+                val sessionId = args["session_id"] as? String
+                val session = svc.getSession(sessionId)
+                val content = session.getPageContent()
+                ToolResult(id = toolCall.id, output = content)
+            }
+            "browser_click" -> {
+                val svc = com.parth.mobileclaw.browser.AgentBrowserService.instance
+                    ?: return ToolResult(id = toolCall.id, output = "Browser service not running.", exitCode = 1, isError = true)
+                val selector = args["selector_or_text"] as? String ?: ""
+                val sessionId = args["session_id"] as? String
+                val session = svc.getSession(sessionId)
+                val success = session.clickElement(selector)
+                ToolResult(id = toolCall.id, output = if (success) "Clicked '$selector'" else "Element not found", exitCode = if (success) 0 else 1, isError = !success)
+            }
+            "browser_type" -> {
+                val svc = com.parth.mobileclaw.browser.AgentBrowserService.instance
+                    ?: return ToolResult(id = toolCall.id, output = "Browser service not running.", exitCode = 1, isError = true)
+                val selector = args["selector_or_text"] as? String ?: ""
+                val text = args["text"] as? String ?: ""
+                val sessionId = args["session_id"] as? String
+                val session = svc.getSession(sessionId)
+                val success = session.typeInField(selector, text)
+                ToolResult(id = toolCall.id, output = if (success) "Typed into '$selector'" else "Field not found", exitCode = if (success) 0 else 1, isError = !success)
+            }
+            "browser_scroll" -> {
+                val svc = com.parth.mobileclaw.browser.AgentBrowserService.instance
+                    ?: return ToolResult(id = toolCall.id, output = "Browser service not running.", exitCode = 1, isError = true)
+                val dir = args["direction"] as? String ?: "down"
+                val sessionId = args["session_id"] as? String
+                val session = svc.getSession(sessionId)
+                val success = session.scroll(dir)
+                ToolResult(id = toolCall.id, output = if (success) "Scrolled $dir" else "Scroll failed", exitCode = if (success) 0 else 1, isError = !success)
+            }
+            "browser_get_url" -> {
+                val svc = com.parth.mobileclaw.browser.AgentBrowserService.instance
+                    ?: return ToolResult(id = toolCall.id, output = "Browser service not running.", exitCode = 1, isError = true)
+                val sessionId = args["session_id"] as? String
+                val session = svc.getSession(sessionId)
+                ToolResult(id = toolCall.id, output = "URL: ${session.currentUrl}\nTitle: ${session.pageTitle}\nSession ID: ${session.sessionId}")
+            }
+            "browser_execute_js" -> {
+                val svc = com.parth.mobileclaw.browser.AgentBrowserService.instance
+                    ?: return ToolResult(id = toolCall.id, output = "Browser service not running.", exitCode = 1, isError = true)
+                val script = args["script"] as? String ?: ""
+                val sessionId = args["session_id"] as? String
+                val session = svc.getSession(sessionId)
+                val result = session.executeJsSuspend(script)
+                ToolResult(id = toolCall.id, output = result ?: "undefined")
+            }
+            "browser_press_enter" -> {
+                val svc = com.parth.mobileclaw.browser.AgentBrowserService.instance
+                    ?: return ToolResult(id = toolCall.id, output = "Browser service not running.", exitCode = 1, isError = true)
+                val sessionId = args["session_id"] as? String
+                val session = svc.getSession(sessionId)
+                val success = session.pressEnter()
+                ToolResult(id = toolCall.id, output = if (success) "Enter key pressed" else "Failed to press Enter", exitCode = if (success) 0 else 1, isError = !success)
             }
 
             else -> ToolResult(id = toolCall.id, output = "Unknown tool: ${toolCall.name}", exitCode = 1, isError = true)

@@ -15,6 +15,7 @@ import com.parth.mobileclaw.ui.ChatScreen
 import com.parth.mobileclaw.ui.OnboardingScreen
 import com.parth.mobileclaw.ui.SettingsScreen
 import com.parth.mobileclaw.ui.SkillBrowserScreen
+import com.parth.mobileclaw.ui.BrowserLoginScreen
 import com.parth.mobileclaw.ui.theme.MobileClawTheme
 
 class MainActivity : ComponentActivity() {
@@ -54,7 +55,13 @@ class MainActivity : ComponentActivity() {
                             orchestrator = orchestrator,
                             onBack = { navController.popBackStack() },
                             onOpenSkills = { navController.navigate("skills") },
-                            onAddSkill = { navController.navigate("skills?showInstall=true") }
+                            onAddSkill = { navController.navigate("skills?showInstall=true") },
+                            onOpenBrowserLogin = { navController.navigate("browser_login") }
+                        )
+                    }
+                    composable("browser_login") {
+                        BrowserLoginScreen(
+                            onBack = { navController.popBackStack() }
                         )
                     }
                     composable(

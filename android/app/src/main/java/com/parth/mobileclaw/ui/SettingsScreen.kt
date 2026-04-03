@@ -30,7 +30,8 @@ fun SettingsScreen(
     orchestrator: AgentOrchestrator,
     onBack: () -> Unit,
     onOpenSkills: () -> Unit = {},
-    onAddSkill: () -> Unit = {}
+    onAddSkill: () -> Unit = {},
+    onOpenBrowserLogin: () -> Unit = {}
 ) {
     val cs = MaterialTheme.colorScheme
     val linuxReady by orchestrator.linuxExecutor.isReady.collectAsState()
@@ -323,6 +324,67 @@ fun SettingsScreen(
                     Spacer(Modifier.width(16.dp))
                     Text("Manage Skills", color = cs.onSurface, fontSize = 16.sp, modifier = Modifier.weight(1f))
                     Icon(Icons.Default.ChevronRight, null, tint = cs.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                }
+            }
+
+            // Agent Interaction Mode
+            SettingsSection("Agent Interaction Mode") {
+                val prefs = orchestrator.getApplication<android.app.Application>()
+                    .getSharedPreferences("mobileclaw_prefs", android.content.Context.MODE_PRIVATE)
+                var currentInteractionMode by remember { mutableStateOf(prefs.getString("agent_interaction_mode", "accessibility") ?: "accessibility") }
+
+                val modes = listOf("accessibility" to "Accessibility (Foreground apps)", "browser" to "Browser (Background web)")
+                modes.forEach { (modeId, displayName) ->
+                    val isSelected = currentInteractionMode == modeId
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                currentInteractionMode = modeId
+                                prefs.edit().putString("agent_interaction_mode", modeId).apply()
+                                // Start/stop browser service and invalidate cached prompt
+                                if (modeId == "browser") {
+                                    com.parth.mobileclaw.browser.AgentBrowserService.start(orchestrator.getApplication())
+                                }
+                                orchestrator.goClawBridge.invalidateCache()
+                            }
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = isSelected,
+                            onClick = null,
+                            colors = RadioButtonDefaults.colors(selectedColor = cs.secondary)
+                        )
+                        Spacer(Modifier.width(16.dp))
+                        Text(displayName, color = cs.onSurface, fontSize = 16.sp)
+                    }
+                }
+                
+                if (currentInteractionMode == "browser") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onOpenBrowserLogin() }
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Public, null, tint = cs.secondary, modifier = Modifier.size(24.dp))
+                        Spacer(Modifier.width(16.dp))
+                        Text("Manage Login Sessions", color = cs.secondary, fontSize = 16.sp, modifier = Modifier.weight(1f))
+                        Icon(Icons.Default.ChevronRight, null, tint = cs.secondary, modifier = Modifier.size(20.dp))
+                    }
+                    Text(
+                        "ℹ️ The agent will browse the web in the background. Log into websites first so it can use your active sessions.",
+                        color = cs.onSurfaceVariant, fontSize = 12.sp,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                } else {
+                    Text(
+                        "ℹ️ The agent will read your screen and physically tap on apps. This interrupts your phone use.",
+                        color = cs.onSurfaceVariant, fontSize = 12.sp,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
                 }
             }
 

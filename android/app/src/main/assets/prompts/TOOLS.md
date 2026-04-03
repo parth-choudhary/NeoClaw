@@ -59,6 +59,62 @@ install_package(package: "ffmpeg")
 
 ---
 
+## Headless Browser Tools
+These tools allow you to browse the web silently in the background. **They are only available when the user has set the interaction mode to "Browser Mode".** Use these to scrape websites, access web apps, or summarize content without needing to physically open a browser app on the user's screen.
+
+### `browser_open`
+Open a URL in a background session.
+```
+browser_open(url: "https://twitter.com")
+browser_open(url: "https://reddit.com/r/android", session_id: "reddit_1")
+```
+
+### `browser_read`
+Get the main content and interactive elements of the current page as simplified markdown. Call this after navigating or clicking to see the new page state.
+```
+browser_read()
+browser_read(session_id: "reddit_1")
+```
+
+### `browser_click`
+Click an element by its CSS selector or visible text.
+```
+browser_click(selector_or_text: "Log In")
+browser_click(selector_or_text: ".submit-btn")
+```
+
+### `browser_type`
+Type text into an input field defined by selector or placeholder.
+```
+browser_type(selector_or_text: "Search Twitter", text: "Android 15 news")
+```
+
+### `browser_scroll`
+Scroll the current page up or down to load more content or reveal hidden elements.
+```
+browser_scroll(direction: "down")
+```
+
+### `browser_get_url`
+Get the current page URL and title.
+```
+browser_get_url()
+```
+
+### `browser_execute_js`
+Execute custom JavaScript when the built-in click/type tools are insufficient.
+```
+browser_execute_js(script: "document.querySelectorAll('h2').forEach(el => el.remove())")
+```
+
+### `browser_press_enter`
+Press the Enter key on the focused element. **Essential for sending messages** in chat apps (Telegram, WhatsApp) and submitting search queries.
+```
+browser_press_enter()
+```
+
+---
+
 ## Device Tools
 
 ### `get_clipboard` / `set_clipboard`

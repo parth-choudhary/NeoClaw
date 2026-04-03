@@ -43,19 +43,44 @@ class GoClawBridge(
         _loadedSkills.value = loadLocalSkills()
     }
 
+    fun invalidateCache() {
+        cachedBasePrompt = null
+    }
+
     /**
      * Build the complete system prompt: base MD files + active skills + user memory.
      */
     fun buildSystemPrompt(): String {
         var prompt = loadBasePrompt()
 
-        // Inject active skill instructions
+        // Check interaction mode
+        val prefs = context.getSharedPreferences("mobileclaw_prefs", android.content.Context.MODE_PRIVATE)
+        val isBrowserMode = prefs.getString("agent_interaction_mode", "accessibility") == "browser"
+
+        // Inject active skill instructions (filter by mode)
         val activeSkills = loadedSkills.value.filter { it.isActive && it.isEnabled }
+            .filter { skill ->
+                when {
+                    isBrowserMode && skill.name == "android-accessibility" -> false
+                    !isBrowserMode && skill.name == "background-browser" -> false
+                    else -> true
+                }
+            }
         if (activeSkills.isNotEmpty()) {
             prompt += "\n\n---\n\n## Active Skills\n\n"
             for (skill in activeSkills) {
                 prompt += "### ${skill.name}\n${skill.instructions}\n\n"
             }
+        }
+
+        // If browser mode, inject browser-specific context
+        if (isBrowserMode) {
+            prompt += "\n\n---\n\n## Agent Mode: Background Browser\n\n"
+            prompt += "You are operating in **Background Browser Mode**. You browse the web silently using a headless WebView.\n"
+            prompt += "- Do NOT use accessibility tools (read_screen, tap_element, etc.) — they are disabled.\n"
+            prompt += "- Use `browser_open`, `browser_read`, `browser_click`, `browser_type`, `browser_scroll`, `browser_get_url`, `browser_execute_js` instead.\n"
+            prompt += "- The user has logged into websites via the Browser Login screen. Their cookies/sessions are shared with your browser.\n"
+            prompt += "- You can browse any website without disrupting the user's current app.\n\n"
         }
 
         // Inject persistent memory
