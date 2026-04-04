@@ -20,7 +20,7 @@
   <a href="#features">Features</a> •
   <a href="#screenshots">Screenshots</a> •
   <a href="#building">Building</a> •
-  <a href="https://github.com/niceparth/NeoClaw/issues">Issues</a>
+  <a href="https://github.com/parth-choudhary/NeoClaw/issues">Issues</a>
 </p>
 
 ---
