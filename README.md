@@ -147,7 +147,7 @@ Attach context to your messages:
 
 ```bash
 # Clone the repository
-git clone https://github.com/niceparth/NeoClaw.git
+git clone https://github.com/parth-choudhary/NeoClaw.git
 cd NeoClaw
 
 # Open in Android Studio
