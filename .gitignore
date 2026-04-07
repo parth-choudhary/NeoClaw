@@ -39,6 +39,9 @@ android/app/build/
 android/.gradle/
 android/local.properties
 android/.cxx/
+*.keystore
+keystore.properties
+play-account.json
 
 # QEMU / UTM Disk Images (large binaries)
 *.qcow2

@@ -1,29 +1,57 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp")
+    id("com.github.triplet.play") version "3.8.4"
 }
 
 android {
-    namespace = "com.parth.mobileclaw"
-    compileSdk = 34
+    namespace = "com.parth.neoclaw"
+    compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.parth.mobileclaw"
+        applicationId = "com.parth.neoclaw"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        targetSdk = 35
+        versionCode = 3
+        versionName = "1.0.2"
+    }
+
+    // Load keystore properties
+    val keystorePropertiesFile = rootProject.file("keystore.properties")
+    val keystoreProperties = Properties()
+    if (keystorePropertiesFile.exists()) {
+        keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+    }
+
+    signingConfigs {
+        create("release") {
+            keyAlias = keystoreProperties["keyAlias"] as String? ?: ""
+            keyPassword = keystoreProperties["keyPassword"] as String? ?: ""
+            storeFile = file(keystoreProperties["storeFile"] as String? ?: "neoclaw.keystore")
+            storePassword = keystoreProperties["storePassword"] as String? ?: ""
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
+    }
+
+    play {
+        track.set("internal")
+        serviceAccountCredentials.set(file("play-account.json"))
+        defaultToAppBundles.set(true)
+        releaseStatus.set(com.github.triplet.gradle.androidpublisher.ReleaseStatus.DRAFT)
     }
 
     compileOptions {

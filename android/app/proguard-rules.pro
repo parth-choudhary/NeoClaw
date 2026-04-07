@@ -3,7 +3,7 @@
 # Keep Gson serialization
 -keepattributes Signature
 -keepattributes *Annotation*
--keep class com.parth.mobileclaw.models.** { *; }
+-keep class com.parth.neoclaw.models.** { *; }
 -keep class com.google.gson.** { *; }
 
 # OkHttp
